@@ -1,5 +1,21 @@
 # Number Classification API
 
+## Table of Contents
+- [Number Classification API](#number-classification-api)
+  - [Table of Contents](#table-of-contents)
+  - [Description](#description)
+  - [Features](#features)
+  - [API Endpoint](#api-endpoint)
+    - [**GET /api/classify-number**](#get-apiclassify-number)
+      - [**Query Parameters**](#query-parameters)
+      - [**Example Request**](#example-request)
+      - [**Example Response (200 OK)**](#example-response-200-ok)
+      - [**Error Response (400 Bad Request)**](#error-response-400-bad-request)
+  - [Installation](#installation)
+  - [Deployment](#deployment)
+  - [Author](#author)
+    - [**Contributions**](#contributions)
+
 ## Description
 A fast and lightweight REST API that classifies numbers based on their mathematical properties. It determines whether a number is prime, perfect, Armstrong, odd, or even, and calculates its digit sum. Additionally, it fetches a fun fact about the number from the Numbers API.
 
@@ -46,8 +62,8 @@ GET /api/classify-number?number=371
 ## Installation
 1. **Clone the repository**
    ```sh
-   git clone https://github.com/your-username/number-classification-api.git
-   cd number-classification-api
+   git clone https://github.com/jerry11671/hng-number-classification-api.git
+   cd hng-number-classification-api
    ```
 
 2. **Install dependencies**
@@ -57,7 +73,7 @@ GET /api/classify-number?number=371
 
 3. **Run the server**
    ```sh
-   node app.js
+   node index.js
    ```
    The server will run on `http://localhost:5000`
 
@@ -67,6 +83,7 @@ To deploy this API, you can use platforms like:
 - **Vercel**
 - **Railway**
 - **Heroku**
+
 
 ## Author
 [Godson Jerry](https://github.com/jerry11671)
