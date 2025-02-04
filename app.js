@@ -52,7 +52,7 @@ app.get('/api/classify-number', async (req, res) => {
     const { number } = req.query;
     const baseUrl = 'http://numbersapi.com/';
 
-    if (!number || isNaN(number) || parseInt(number) < 0) {
+    if (!number || isNaN(number)) {
         return res.status(400).json({ number: number, error: true });
     }
 
