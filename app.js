@@ -31,12 +31,7 @@ function isPerfect(number) {
 
 // Function to calculate the sum of digits
 function sumDigits(number) {
-    let sum = 0;
-    while (number > 0) {
-        sum += number % 10;
-        number = Math.floor(number / 10);
-    }
-    return sum;
+     return number.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
 }
 
 // Function to check for armstrong numbers
