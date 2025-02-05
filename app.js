@@ -1,86 +1,125 @@
 const express = require('express');
-const app = express();
+const axios = require('axios');
 const cors = require('cors');
 
-const port = 5000;
-
-const axios = require('axios'); 
-
-// Handle cors
+const app = express();
 app.use(cors());
 
-// Function to check for prime number 
-function isPrime (number) {
-    if (number < 2) return false;
-    for (let i = 2; i * i <= number; i++) {
-        if (number % i === 0) return false;
+// In-memory cache
+const cache = new Map();
+
+// Helper functions
+function isPrime(n) {
+    if (n <= 1) return false;
+    if (n === 2) return true;
+    if (n % 2 === 0) return false;
+    const sqrt = Math.sqrt(n);
+    for (let i = 3; i <= sqrt; i += 2) {
+        if (n % i === 0) return false;
     }
     return true;
 }
 
-// Function to check for perfect number
-function isPerfect(number) {
-    let sum = 0;
-    for (let i = 0; i < number; i++) {
-        if (number % i === 0) {
+function isPerfect(n) {
+    if (n < 2) return false;
+    let sum = 1;
+    const sqrt = Math.sqrt(n);
+    for (let i = 2; i <= sqrt; i++) {
+        if (n % i === 0) {
             sum += i;
+            if (i !== n / i) sum += n / i;
         }
     }
-    return sum === number;
+    return sum === n && n !== 1;
 }
 
-// Function to calculate the sum of digits
-function sumDigits(number) {
-     return number.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
+function isArmstrong(n) {
+    const digits = n.toString().split('').map(Number);
+    const numDigits = digits.length;
+    const sum = digits.reduce((acc, digit) => acc + Math.pow(digit, numDigits), 0);
+    return sum === n;
 }
 
-// Function to check for armstrong numbers
-const isArmstrong = (num) => {
-    const digits = num.toString().split('').map(Number);
-    const power = digits.length;
-    const sum = digits.reduce((acc, digit) => acc + Math.pow(digit, power), 0);
-    return sum === num;
-};
+function getDigitSum(n) {
+    return n.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
+}
 
-// API Endpoint
+async function getFunFact(n) {
+    if (cache.has(`fun_fact_${n}`)) return cache.get(`fun_fact_${n}`);
+    try {
+        const response = await axios.get(`http://numbersapi.com/${n}/math`, { timeout: 2000 });
+        const fact = response.data.trim();
+        cache.set(`fun_fact_${n}`, fact);
+        return fact;
+    } catch (error) {
+        console.error(`Error fetching fun fact for ${n}:`, error.message);
+        return 'Fun fact unavailable';
+    }
+}
+
+// Middleware to measure response time
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`Request ${req.method} ${req.url} took ${duration}ms`);
+    });
+    next();
+});
+
+// API endpoint
 app.get('/api/classify-number', async (req, res) => {
     const { number } = req.query;
-    const baseUrl = 'http://numbersapi.com/';
 
+    // Input validation
     if (!number || isNaN(number)) {
         return res.status(400).json({ number: number, error: true });
     }
 
-    const properties = [];
-    const num = parseInt(number);
+    const num = parseInt(number, 10);
 
-    if (isArmstrong(num)) {
-        properties.push('armstrong');
+    // Check cache first
+    if (cache.has(num)) {
+        return res.json(cache.get(num));
     }
 
-    properties.push(num % 2 === 0 ? 'even' : 'odd');
+    // Perform calculations and fetch fun fact concurrently
+    const [funFact, classification] = await Promise.all([
+        getFunFact(num),
+        new Promise((resolve) => {
+            const isPrimeResult = isPrime(num);
+            const isPerfectResult = isPerfect(num);
+            const properties = [];
+            if (isArmstrong(num)) properties.push('armstrong');
+            if (num % 2 === 0) properties.push('even');
+            else properties.push('odd');
+            const digitSum = getDigitSum(num);
 
-    try {
-        const resp = await axios.get(`${baseUrl}${number}`);
-        const respData = {
-            number: number,
-            is_prime: isPrime(num),
-            is_perfect: isPerfect(num),
-            properties,
-            digit_sum: sumDigits(num),
-            fun_fact: resp.data
-        }
-        res.status(200).json(respData);
-    } catch (error) {
-        res.status(500).json({ error: true });
-    }
-})
+            resolve({
+                number: num,
+                is_prime: isPrimeResult,
+                is_perfect: isPerfectResult,
+                properties,
+                digit_sum: digitSum,
+            });
+        }),
+    ]);
 
+    // Combine results
+    const response = {
+        ...classification,
+        fun_fact: funFact,
+    };
 
+    // Store in cache
+    cache.set(num, response);
 
-app.listen(port, () => {
-    console.log(`Server is listening on port ${port}`)
+    // Send response
+    res.json(response);
 });
 
-
-
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
